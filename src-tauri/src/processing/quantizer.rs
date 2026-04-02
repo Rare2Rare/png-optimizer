@@ -10,7 +10,18 @@ pub fn quantize_image(img: &DynamicImage, quality: u8) -> Result<Vec<u8>, String
     let height = rgba.height() as usize;
     let raw = rgba.as_raw();
 
-    // Reinterpret &[u8] as &[RGBA] (4 bytes per pixel)
+    // Validate buffer length before reinterpret
+    let expected_len = width * height * 4;
+    if raw.len() != expected_len {
+        return Err(format!(
+            "Buffer size mismatch: expected {} bytes, got {}",
+            expected_len,
+            raw.len()
+        ));
+    }
+
+    // Safety: RGBA is #[repr(C)] with 4 u8 fields, same layout as [u8; 4].
+    // Buffer length is validated above.
     let pixels: &[RGBA] = unsafe {
         std::slice::from_raw_parts(raw.as_ptr() as *const RGBA, width * height)
     };

@@ -38,7 +38,8 @@
   "actions": {
     "convertSelected": "選択を変換",
     "convertAll": "すべて変換",
-    "converting": "変換中..."
+    "converting": "変換中...",
+    "noOutputDir": "出力先フォルダを選択してください"
   },
   "zoom": {
     "reset": "リセット",

@@ -8,15 +8,28 @@ use crate::processing::quantizer;
 use crate::processing::resizer;
 
 const PREVIEW_MAX_SIZE: u32 = 1024;
+const MAX_RESIZE_DIM: u32 = 16384;
 
-#[tauri::command]
-pub fn load_image_info(path: String) -> Result<ImageInfo, String> {
-    let (_img, info) = decoder::load_image(&path)?;
-    Ok(info)
+fn clamp_quality(q: u8) -> u8 {
+    q.max(1).min(100)
+}
+
+fn clamp_resize(w: u32, h: u32) -> (u32, u32) {
+    (w.min(MAX_RESIZE_DIM), h.min(MAX_RESIZE_DIM))
 }
 
 #[tauri::command]
-pub fn generate_preview(
+pub async fn load_image_info(path: String) -> Result<ImageInfo, String> {
+    tokio::task::spawn_blocking(move || {
+        let (_img, info) = decoder::load_image(&path)?;
+        Ok(info)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
+#[tauri::command]
+pub async fn generate_preview(
     path: String,
     mode: String,
     quality: u8,
@@ -25,51 +38,49 @@ pub fn generate_preview(
     resize_width: u32,
     resize_height: u32,
 ) -> Result<PreviewResult, String> {
-    let (img, info) = decoder::load_image(&path)?;
+    tokio::task::spawn_blocking(move || {
+        let quality = clamp_quality(quality);
+        let (rw, rh) = clamp_resize(resize_width, resize_height);
+        let (img, info) = decoder::load_image(&path)?;
 
-    // Apply resize if requested
-    let img = resizer::resize_image(&img, resize_scale, resize_width, resize_height);
-    let (out_w, out_h) = (img.width(), img.height());
+        // Apply resize if requested
+        let img = resizer::resize_image(&img, resize_scale.min(100), rw, rh);
+        let (out_w, out_h) = (img.width(), img.height());
 
-    // Create thumbnail for preview
-    let thumb = decoder::create_thumbnail(&img, PREVIEW_MAX_SIZE);
+        // Create thumbnail for preview
+        let thumb = decoder::create_thumbnail(&img, PREVIEW_MAX_SIZE);
+        let before_png = decoder::encode_png(&thumb)?;
 
-    // Encode original thumbnail as PNG for "before"
-    let before_png = decoder::encode_png(&thumb)?;
-    let before_data_url = format!(
-        "data:image/png;base64,{}",
-        BASE64.encode(&before_png)
-    );
+        let before_data_url = format!(
+            "data:image/png;base64,{}",
+            BASE64.encode(&before_png)
+        );
 
-    // Generate optimized version
-    let (after_png, optimized_full_size) = match mode.as_str() {
-        "lossless" => {
-            let full_png = decoder::encode_png(&img)?;
-            let optimized = optimizer::optimize_lossless(&full_png, strip_metadata)?;
-            let opt_size = optimized.len() as u64;
-            let thumb_optimized = optimizer::optimize_lossless(&before_png, strip_metadata)?;
-            (thumb_optimized, opt_size)
-        }
-        "lossy" => {
-            let quantized_full = quantizer::quantize_image(&img, quality)?;
-            let opt_size = quantized_full.len() as u64;
-            let quantized_thumb = quantizer::quantize_image(&thumb, quality)?;
-            (quantized_thumb, opt_size)
-        }
-        _ => return Err("Invalid mode. Use 'lossless' or 'lossy'.".into()),
-    };
+        // Optimize thumbnail only (avoid processing full image for preview)
+        let after_png = match mode.as_str() {
+            "lossless" => optimizer::optimize_lossless(&before_png, strip_metadata)?,
+            "lossy" => quantizer::quantize_image(&thumb, quality)?,
+            _ => return Err("Invalid mode. Use 'lossless' or 'lossy'.".into()),
+        };
 
-    let after_data_url = format!(
-        "data:image/png;base64,{}",
-        BASE64.encode(&after_png)
-    );
+        // Estimate full-image size from thumbnail compression ratio
+        let thumb_ratio = after_png.len() as f64 / before_png.len() as f64;
+        let estimated_full_size = (info.file_size as f64 * thumb_ratio) as u64;
 
-    Ok(PreviewResult {
-        before_data_url,
-        after_data_url,
-        original_size: info.file_size,
-        optimized_size: optimized_full_size,
-        width: out_w,
-        height: out_h,
+        let after_data_url = format!(
+            "data:image/png;base64,{}",
+            BASE64.encode(&after_png)
+        );
+
+        Ok(PreviewResult {
+            before_data_url,
+            after_data_url,
+            original_size: info.file_size,
+            optimized_size: estimated_full_size,
+            width: out_w,
+            height: out_h,
+        })
     })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
 }

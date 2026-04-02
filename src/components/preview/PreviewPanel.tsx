@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { formatFileSize, formatReduction } from "../../lib/constants";
 import type { PreviewResult, QueueItem } from "../../lib/types";
@@ -26,6 +26,13 @@ export function PreviewPanel({
   const [panY, setPanY] = useState(0);
   const [isPanning, setIsPanning] = useState(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  // Reset zoom/pan when switching images
+  useEffect(() => {
+    setZoom(1);
+    setPanX(0);
+    setPanY(0);
+  }, [selectedItem?.id]);
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {

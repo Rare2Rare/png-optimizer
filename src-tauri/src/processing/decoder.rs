@@ -1,4 +1,5 @@
 use image::{DynamicImage, ImageFormat};
+use std::borrow::Cow;
 use std::fs;
 use std::path::Path;
 
@@ -56,10 +57,11 @@ pub fn encode_png(img: &DynamicImage) -> Result<Vec<u8>, String> {
 }
 
 /// Create a thumbnail of the image (max dimension = max_size).
-pub fn create_thumbnail(img: &DynamicImage, max_size: u32) -> DynamicImage {
+/// Returns Cow::Borrowed if already within bounds, avoiding a clone.
+pub fn create_thumbnail(img: &DynamicImage, max_size: u32) -> Cow<'_, DynamicImage> {
     let (w, h) = (img.width(), img.height());
     if w <= max_size && h <= max_size {
-        return img.clone();
+        return Cow::Borrowed(img);
     }
-    img.thumbnail(max_size, max_size)
+    Cow::Owned(img.thumbnail(max_size, max_size))
 }

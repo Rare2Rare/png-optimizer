@@ -38,7 +38,8 @@
   "actions": {
     "convertSelected": "Convert selected",
     "convertAll": "Convert all",
-    "converting": "Converting..."
+    "converting": "Converting...",
+    "noOutputDir": "Please select an output folder"
   },
   "zoom": {
     "reset": "Reset",

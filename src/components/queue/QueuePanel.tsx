@@ -44,7 +44,7 @@ export function QueuePanel({
     });
 
     return () => {
-      unlisten.then((fn) => fn());
+      unlisten.then((fn) => fn()).catch(console.error);
     };
   }, [queue.length, onAddFiles]);
 
@@ -102,6 +102,7 @@ export function QueuePanel({
           <div
             key={item.id}
             onClick={() => onSelect(item.id)}
+            className={`queue-item${selectedId === item.id ? " active" : ""}`}
             style={{
               display: "flex",
               alignItems: "center",
@@ -109,14 +110,7 @@ export function QueuePanel({
               padding: "6px 8px",
               borderRadius: 4,
               cursor: "pointer",
-              background: selectedId === item.id ? "var(--bg-tertiary)" : "transparent",
               transition: "background 0.1s",
-            }}
-            onMouseOver={(e) => {
-              if (selectedId !== item.id) e.currentTarget.style.background = "var(--bg-surface)";
-            }}
-            onMouseOut={(e) => {
-              if (selectedId !== item.id) e.currentTarget.style.background = "transparent";
             }}
           >
             <input
@@ -158,17 +152,8 @@ export function QueuePanel({
                 e.stopPropagation();
                 onRemove(item.id);
               }}
-              style={{
-                padding: "1px 4px",
-                background: "transparent",
-                color: "var(--text-muted)",
-                fontSize: 14,
-                lineHeight: 1,
-                borderRadius: 3,
-                flexShrink: 0,
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.color = "var(--error)")}
-              onMouseOut={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+              className="btn-remove"
+              aria-label="Remove image"
               title="Remove"
             >
               ×

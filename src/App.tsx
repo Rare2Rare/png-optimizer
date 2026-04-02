@@ -14,7 +14,7 @@ import type {
 } from "./lib/types";
 
 function App() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
@@ -144,13 +144,19 @@ function App() {
     }
   }, [selectedItem, settings]);
 
-  const convertSelected = useCallback(async () => {
+  const convertSelected = useCallback(async (selectAll = false) => {
     if (!settings.outputDir) {
-      alert("出力先フォルダを選択してください / Please select output folder");
+      alert(t("actions.noOutputDir"));
       return;
     }
 
-    const targets = queue.filter(
+    let currentQueue = queue;
+    if (selectAll) {
+      currentQueue = queue.map((item) => ({ ...item, selected: true }));
+      setQueue(currentQueue);
+    }
+
+    const targets = currentQueue.filter(
       (item) => item.selected && item.status !== "done",
     );
     if (targets.length === 0) return;
@@ -194,8 +200,7 @@ function App() {
   }, [queue, settings]);
 
   const convertAll = useCallback(async () => {
-    setQueue((prev) => prev.map((item) => ({ ...item, selected: true })));
-    setTimeout(() => convertSelected(), 0);
+    convertSelected(true);
   }, [convertSelected]);
 
   const toggleLanguage = useCallback(() => {

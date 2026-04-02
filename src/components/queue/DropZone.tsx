@@ -27,7 +27,7 @@ export function DropZone({ onFilesDropped }: DropZoneProps) {
     });
 
     return () => {
-      unlisten.then((fn) => fn());
+      unlisten.then((fn) => fn()).catch(console.error);
     };
   }, [onFilesDropped]);
 
@@ -75,20 +75,7 @@ export function DropZone({ onFilesDropped }: DropZoneProps) {
           </>
         )}
       </div>
-      <button
-        onClick={handleBrowse}
-        style={{
-          padding: "8px 20px",
-          background: "var(--accent)",
-          color: "white",
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 500,
-          transition: "background 0.15s",
-        }}
-        onMouseOver={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
-        onMouseOut={(e) => (e.currentTarget.style.background = "var(--accent)")}
-      >
+      <button onClick={handleBrowse} className="btn-primary">
         {t("dropzone.browse")}
       </button>
     </div>
