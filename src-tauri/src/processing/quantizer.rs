@@ -1,9 +1,9 @@
-use image::DynamicImage;
+use image::{DynamicImage, ImageFormat, RgbaImage};
 use imagequant::RGBA;
 
 /// Lossy PNG optimization via color quantization (imagequant).
 /// quality: 1-100 (maps to imagequant's min_quality..max_quality).
-/// Returns indexed-color PNG bytes.
+/// Returns optimized PNG bytes.
 pub fn quantize_image(img: &DynamicImage, quality: u8) -> Result<Vec<u8>, String> {
     let rgba = img.to_rgba8();
     let width = rgba.width() as usize;
@@ -32,12 +32,10 @@ pub fn quantize_image(img: &DynamicImage, quality: u8) -> Result<Vec<u8>, String
     liq.set_quality(min_q, quality)
         .map_err(|e| format!("Failed to set quality: {}", e))?;
 
-    // Create image for quantization
     let mut liq_image = liq
         .new_image_borrowed(pixels, width, height, 0.0)
         .map_err(|e| format!("Failed to create quantization image: {}", e))?;
 
-    // Quantize
     let mut result = liq
         .quantize(&mut liq_image)
         .map_err(|e| format!("Quantization failed: {}", e))?;
@@ -49,43 +47,25 @@ pub fn quantize_image(img: &DynamicImage, quality: u8) -> Result<Vec<u8>, String
         .remapped(&mut liq_image)
         .map_err(|e| format!("Remapping failed: {}", e))?;
 
-    // Encode as indexed PNG using lodepng
-    let lode_palette: Vec<lodepng::RGBA> = palette
-        .iter()
-        .map(|c| lodepng::RGBA {
-            r: c.r,
-            g: c.g,
-            b: c.b,
-            a: c.a,
-        })
-        .collect();
-
-    let mut encoder = lodepng::Encoder::new();
-    encoder.set_auto_convert(false);
-
-    {
-        let info = encoder.info_raw_mut();
-        info.colortype = lodepng::ColorType::PALETTE;
-        info.set_bitdepth(8);
-        for color in &lode_palette {
-            info.palette_add(*color)
-                .map_err(|e| format!("Failed to add palette color: {}", e))?;
-        }
+    // Expand indexed pixels back to RGBA using the quantized palette
+    let mut out_buf = Vec::with_capacity(width * height * 4);
+    for &idx in &indexed_pixels {
+        let c = &palette[idx as usize];
+        out_buf.push(c.r);
+        out_buf.push(c.g);
+        out_buf.push(c.b);
+        out_buf.push(c.a);
     }
 
-    {
-        let info_png = encoder.info_png_mut();
-        info_png.color.colortype = lodepng::ColorType::PALETTE;
-        info_png.color.set_bitdepth(8);
-        for color in &lode_palette {
-            info_png.color.palette_add(*color)
-                .map_err(|e| format!("Failed to add palette color: {}", e))?;
-        }
-    }
+    let out_img = RgbaImage::from_raw(width as u32, height as u32, out_buf)
+        .ok_or_else(|| "Failed to create output image".to_string())?;
 
-    let png_data = encoder
-        .encode(&indexed_pixels, width, height)
+    // Encode as PNG using the image crate
+    let mut png_buf = Vec::new();
+    let mut cursor = std::io::Cursor::new(&mut png_buf);
+    DynamicImage::ImageRgba8(out_img)
+        .write_to(&mut cursor, ImageFormat::Png)
         .map_err(|e| format!("PNG encoding failed: {}", e))?;
 
-    Ok(png_data)
+    Ok(png_buf)
 }

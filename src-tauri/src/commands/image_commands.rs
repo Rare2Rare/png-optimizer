@@ -20,7 +20,7 @@ pub async fn optimize_single(
     resize_width: u32,
     resize_height: u32,
 ) -> Result<OptimizationResult, String> {
-    tokio::task::spawn_blocking(move || {
+    tauri::async_runtime::spawn_blocking(move || {
         let quality = quality.max(1).min(100);
         let resize_width = resize_width.min(MAX_RESIZE_DIM);
         let resize_height = resize_height.min(MAX_RESIZE_DIM);

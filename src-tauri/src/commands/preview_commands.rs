@@ -20,7 +20,7 @@ fn clamp_resize(w: u32, h: u32) -> (u32, u32) {
 
 #[tauri::command]
 pub async fn load_image_info(path: String) -> Result<ImageInfo, String> {
-    tokio::task::spawn_blocking(move || {
+    tauri::async_runtime::spawn_blocking(move || {
         let (_img, info) = decoder::load_image(&path)?;
         Ok(info)
     })
@@ -38,7 +38,7 @@ pub async fn generate_preview(
     resize_width: u32,
     resize_height: u32,
 ) -> Result<PreviewResult, String> {
-    tokio::task::spawn_blocking(move || {
+    tauri::async_runtime::spawn_blocking(move || {
         let quality = clamp_quality(quality);
         let (rw, rh) = clamp_resize(resize_width, resize_height);
         let (img, info) = decoder::load_image(&path)?;
