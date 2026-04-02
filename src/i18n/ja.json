@@ -1,0 +1,47 @@
+{
+  "app": {
+    "title": "PNG Optimizer"
+  },
+  "dropzone": {
+    "drop": "ドロップして追加",
+    "message": "画像ファイルをドラッグ＆ドロップ",
+    "formats": "PNG, JPEG, BMP に対応",
+    "browse": "ファイルを選択"
+  },
+  "queue": {
+    "title": "QUEUE",
+    "add": "+ 追加",
+    "files": "ファイル",
+    "done": "完了",
+    "selectToPreview": "キューからファイルを選択してプレビュー"
+  },
+  "preview": {
+    "before": "BEFORE",
+    "after": "AFTER",
+    "generating": "プレビューを生成中...",
+    "noPreview": "プレビューがありません",
+    "generate": "生成する"
+  },
+  "settings": {
+    "mode": "MODE",
+    "lossless": "ロスレス",
+    "lossy": "減色",
+    "quality": "品質",
+    "stripMetadata": "メタデータ除去",
+    "output": "出力先",
+    "notSelected": "未選択",
+    "browse": "参照",
+    "resize": "リサイズ",
+    "resizeNone": "なし",
+    "resizeCustom": "カスタム"
+  },
+  "actions": {
+    "convertSelected": "選択を変換",
+    "convertAll": "すべて変換",
+    "converting": "変換中..."
+  },
+  "zoom": {
+    "reset": "リセット",
+    "fit": "フィット"
+  }
+}

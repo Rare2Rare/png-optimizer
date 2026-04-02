@@ -1,0 +1,47 @@
+{
+  "app": {
+    "title": "PNG Optimizer"
+  },
+  "dropzone": {
+    "drop": "Drop to add",
+    "message": "Drag & drop image files",
+    "formats": "Supports PNG, JPEG, BMP",
+    "browse": "Select files"
+  },
+  "queue": {
+    "title": "QUEUE",
+    "add": "+ Add",
+    "files": "files",
+    "done": "done",
+    "selectToPreview": "Select a file from the queue to preview"
+  },
+  "preview": {
+    "before": "BEFORE",
+    "after": "AFTER",
+    "generating": "Generating preview...",
+    "noPreview": "No preview available",
+    "generate": "Generate"
+  },
+  "settings": {
+    "mode": "MODE",
+    "lossless": "Lossless",
+    "lossy": "Lossy",
+    "quality": "Quality",
+    "stripMetadata": "Strip metadata",
+    "output": "Output",
+    "notSelected": "Not selected",
+    "browse": "Browse",
+    "resize": "Resize",
+    "resizeNone": "None",
+    "resizeCustom": "Custom"
+  },
+  "actions": {
+    "convertSelected": "Convert selected",
+    "convertAll": "Convert all",
+    "converting": "Converting..."
+  },
+  "zoom": {
+    "reset": "Reset",
+    "fit": "Fit"
+  }
+}
