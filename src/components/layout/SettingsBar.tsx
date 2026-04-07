@@ -178,6 +178,17 @@ export function SettingsBar({ settings, onSettingsChange }: SettingsBarProps) {
         {t("settings.stripMetadata")}
       </label>
 
+      {/* Skip if larger toggle */}
+      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 12 }}>
+        <input
+          type="checkbox"
+          checked={settings.skipIfLarger}
+          onChange={(e) => update({ skipIfLarger: e.target.checked })}
+          style={{ accentColor: "var(--accent)" }}
+        />
+        {t("settings.skipIfLarger")}
+      </label>
+
       {/* Output dir */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
         <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>

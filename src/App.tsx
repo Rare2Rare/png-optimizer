@@ -33,6 +33,7 @@ function App() {
     quality: 75,
     outputDir: "",
     stripMetadata: true,
+    skipIfLarger: true,
     resize: { mode: "none", scale: 50, width: 0, height: 0 },
   });
 
@@ -242,6 +243,9 @@ function App() {
           setQueue((prev) =>
             prev.map((q) => {
               if (q.info.path !== p.inputPath) return q;
+              if (p.status === "skipped" && p.result) {
+                return { ...q, status: "skipped" as const, result: p.result };
+              }
               if (p.status === "done" && p.result) {
                 return { ...q, status: "done" as const, result: p.result };
               }
@@ -276,6 +280,7 @@ function App() {
           settings.mode,
           settings.quality,
           settings.stripMetadata,
+          settings.skipIfLarger,
           settings.resize,
         );
       } catch (err) {

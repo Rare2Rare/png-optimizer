@@ -20,7 +20,8 @@
     "selectAll": "全選択",
     "deselectAll": "全解除",
     "selected": "選択中",
-    "clearCompleted": "完了をクリア"
+    "clearCompleted": "完了をクリア",
+    "skipped": "スキップ（増加）"
   },
   "preview": {
     "before": "BEFORE",
@@ -40,7 +41,8 @@
     "browse": "参照",
     "resize": "リサイズ",
     "resizeNone": "なし",
-    "resizeCustom": "カスタム"
+    "resizeCustom": "カスタム",
+    "skipIfLarger": "増加時スキップ"
   },
   "actions": {
     "convertSelected": "選択を変換",

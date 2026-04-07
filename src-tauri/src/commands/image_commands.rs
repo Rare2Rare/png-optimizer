@@ -22,6 +22,7 @@ fn optimize_one(
     resize_scale: u32,
     resize_width: u32,
     resize_height: u32,
+    skip_if_larger: bool,
 ) -> Result<OptimizationResult, String> {
     let (img, info) = decoder::load_image(input_path)?;
 
@@ -33,7 +34,6 @@ fn optimize_one(
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "output".to_string());
 
-    // Resolve unique output path to avoid collisions
     let base = Path::new(output_dir).join(format!("{}_optimized.png", stem));
     let output_path = if base.exists() {
         let mut i = 2u32;
@@ -62,6 +62,19 @@ fn optimize_one(
 
     let optimized_size = optimized_data.len() as u64;
 
+    // Skip writing if optimized is larger than original
+    if skip_if_larger && optimized_size >= info.file_size {
+        return Ok(OptimizationResult {
+            input_path: input_path.to_string(),
+            output_path: String::new(),
+            original_size: info.file_size,
+            optimized_size,
+            width: out_w,
+            height: out_h,
+            skipped: true,
+        });
+    }
+
     fs::write(&output_path, &optimized_data)
         .map_err(|e| format!("Failed to write output file: {}", e))?;
 
@@ -72,6 +85,7 @@ fn optimize_one(
         optimized_size,
         width: out_w,
         height: out_h,
+        skipped: false,
     })
 }
 
@@ -85,6 +99,7 @@ pub async fn optimize_single(
     resize_scale: u32,
     resize_width: u32,
     resize_height: u32,
+    skip_if_larger: bool,
 ) -> Result<OptimizationResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
         optimize_one(
@@ -96,6 +111,7 @@ pub async fn optimize_single(
             resize_scale,
             resize_width.min(MAX_RESIZE_DIM),
             resize_height.min(MAX_RESIZE_DIM),
+            skip_if_larger,
         )
     })
     .await
@@ -113,6 +129,7 @@ pub async fn optimize_batch(
     resize_scale: u32,
     resize_width: u32,
     resize_height: u32,
+    skip_if_larger: bool,
 ) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         let quality = quality.max(1).min(100);
@@ -136,15 +153,16 @@ pub async fn optimize_batch(
                 resize_scale,
                 resize_width,
                 resize_height,
+                skip_if_larger,
             );
 
-            let event = match result {
+            let event = match &result {
                 Ok(r) => BatchProgressEvent {
                     input_path: input_path.clone(),
                     index: idx,
                     total,
-                    status: "done".to_string(),
-                    result: Some(r),
+                    status: if r.skipped { "skipped".to_string() } else { "done".to_string() },
+                    result: Some(r.clone()),
                     error: None,
                 },
                 Err(e) => BatchProgressEvent {
@@ -153,7 +171,7 @@ pub async fn optimize_batch(
                     total,
                     status: "error".to_string(),
                     result: None,
-                    error: Some(e),
+                    error: Some(e.clone()),
                 },
             };
 

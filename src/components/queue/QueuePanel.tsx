@@ -23,6 +23,7 @@ const statusIcons: Record<string, string> = {
   pending: "\u23F3",
   processing: "\u2699\uFE0F",
   done: "\u2705",
+  skipped: "\u23ED\uFE0F",
   error: "\u274C",
 };
 
@@ -163,11 +164,20 @@ export function QueuePanel({
               </div>
               <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
                 {formatFileSize(item.info.fileSize)}
-                {item.result && (
-                  <span style={{ color: "var(--success)" }}>
+                {item.result && !item.result.skipped && (
+                  <span style={{
+                    color: item.result.optimizedSize < item.info.fileSize
+                      ? "var(--success)" : "var(--error)",
+                  }}>
                     {" → "}
                     {formatFileSize(item.result.optimizedSize)}
+                    {" ("}
+                    {Math.round((1 - item.result.optimizedSize / item.info.fileSize) * 100)}
+                    {"%)"}
                   </span>
+                )}
+                {item.result?.skipped && (
+                  <span style={{ color: "var(--warning)" }}> {t("queue.skipped")}</span>
                 )}
               </div>
             </div>

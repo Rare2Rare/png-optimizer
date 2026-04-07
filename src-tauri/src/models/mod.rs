@@ -20,6 +20,7 @@ pub struct OptimizationResult {
     pub optimized_size: u64,
     pub width: u32,
     pub height: u32,
+    pub skipped: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -19,6 +19,7 @@ export async function optimizeBatch(
   mode: "lossless" | "lossy",
   quality: number,
   stripMetadata: boolean,
+  skipIfLarger: boolean,
   resize: ResizeSettings,
 ): Promise<void> {
   return invoke<void>("optimize_batch", {
@@ -27,6 +28,7 @@ export async function optimizeBatch(
     mode,
     quality,
     stripMetadata,
+    skipIfLarger,
     ...resizeArgs(resize),
   });
 }
@@ -65,6 +67,7 @@ export async function optimizeSingle(
   mode: "lossless" | "lossy",
   quality: number,
   stripMetadata: boolean,
+  skipIfLarger: boolean,
   resize: ResizeSettings,
 ): Promise<OptimizationResult> {
   return invoke<OptimizationResult>("optimize_single", {
@@ -73,6 +76,7 @@ export async function optimizeSingle(
     mode,
     quality,
     stripMetadata,
+    skipIfLarger,
     ...resizeArgs(resize),
   });
 }

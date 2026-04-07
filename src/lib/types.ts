@@ -19,6 +19,7 @@ export interface OptimizationSettings {
   quality: number; // 1-100, used in lossy mode
   outputDir: string;
   stripMetadata: boolean;
+  skipIfLarger: boolean;
   resize: ResizeSettings;
 }
 
@@ -29,6 +30,7 @@ export interface OptimizationResult {
   optimizedSize: number;
   width: number;
   height: number;
+  skipped: boolean;
 }
 
 export interface PreviewResult {
@@ -44,12 +46,12 @@ export interface BatchProgressPayload {
   inputPath: string;
   index: number;
   total: number;
-  status: "done" | "error";
+  status: "done" | "skipped" | "error";
   result?: OptimizationResult;
   error?: string;
 }
 
-export type QueueItemStatus = "pending" | "processing" | "done" | "error";
+export type QueueItemStatus = "pending" | "processing" | "done" | "skipped" | "error";
 
 export interface QueueItem {
   id: string;

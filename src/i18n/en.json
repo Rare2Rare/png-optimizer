@@ -20,7 +20,8 @@
     "selectAll": "Select all",
     "deselectAll": "Deselect all",
     "selected": "selected",
-    "clearCompleted": "Clear completed"
+    "clearCompleted": "Clear completed",
+    "skipped": "Skipped (larger)"
   },
   "preview": {
     "before": "BEFORE",
@@ -40,7 +41,8 @@
     "browse": "Browse",
     "resize": "Resize",
     "resizeNone": "None",
-    "resizeCustom": "Custom"
+    "resizeCustom": "Custom",
+    "skipIfLarger": "Skip if larger"
   },
   "actions": {
     "convertSelected": "Convert selected",
