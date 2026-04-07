@@ -24,6 +24,17 @@ pub struct OptimizationResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct BatchProgressEvent {
+    pub input_path: String,
+    pub index: usize,
+    pub total: usize,
+    pub status: String,
+    pub result: Option<OptimizationResult>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PreviewResult {
     pub before_data_url: String,
     pub after_data_url: String,

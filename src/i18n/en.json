@@ -6,14 +6,21 @@
     "drop": "Drop to add",
     "message": "Drag & drop image files",
     "formats": "Supports PNG, JPEG, BMP",
-    "browse": "Select files"
+    "formatsAndFolders": "Supports PNG, JPEG, BMP — files or folders",
+    "browse": "Select files",
+    "browseFolder": "Select folder"
   },
   "queue": {
     "title": "QUEUE",
     "add": "+ Add",
+    "addFolder": "+ Folder",
     "files": "files",
     "done": "done",
-    "selectToPreview": "Select a file from the queue to preview"
+    "selectToPreview": "Select a file from the queue to preview",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "selected": "selected",
+    "clearCompleted": "Clear completed"
   },
   "preview": {
     "before": "BEFORE",

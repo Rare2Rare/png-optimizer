@@ -2636,12 +2636,14 @@ dependencies = [
  "imagequant",
  "log",
  "oxipng",
+ "rayon",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-log",
+ "walkdir",
 ]
 
 [[package]]

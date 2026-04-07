@@ -1,13 +1,79 @@
 use std::fs;
 use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::models::OptimizationResult;
+use rayon::prelude::*;
+use tauri::Emitter;
+
+use crate::models::{BatchProgressEvent, OptimizationResult};
 use crate::processing::decoder;
 use crate::processing::optimizer;
 use crate::processing::quantizer;
 use crate::processing::resizer;
 
 const MAX_RESIZE_DIM: u32 = 16384;
+
+fn optimize_one(
+    input_path: &str,
+    output_dir: &str,
+    mode: &str,
+    quality: u8,
+    strip_metadata: bool,
+    resize_scale: u32,
+    resize_width: u32,
+    resize_height: u32,
+) -> Result<OptimizationResult, String> {
+    let (img, info) = decoder::load_image(input_path)?;
+
+    let img = resizer::resize_image(&img, resize_scale.min(100), resize_width, resize_height);
+    let (out_w, out_h) = (img.width(), img.height());
+
+    let stem = Path::new(input_path)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "output".to_string());
+
+    // Resolve unique output path to avoid collisions
+    let base = Path::new(output_dir).join(format!("{}_optimized.png", stem));
+    let output_path = if base.exists() {
+        let mut i = 2u32;
+        loop {
+            let candidate = Path::new(output_dir).join(format!("{}_optimized_{}.png", stem, i));
+            if !candidate.exists() {
+                break candidate;
+            }
+            i += 1;
+        }
+    } else {
+        base
+    };
+
+    fs::create_dir_all(output_dir)
+        .map_err(|e| format!("Failed to create output directory: {}", e))?;
+
+    let optimized_data = match mode {
+        "lossless" => {
+            let png_data = decoder::encode_png(&img)?;
+            optimizer::optimize_lossless(&png_data, strip_metadata)?
+        }
+        "lossy" => quantizer::quantize_image(&img, quality)?,
+        _ => return Err("Invalid mode. Use 'lossless' or 'lossy'.".into()),
+    };
+
+    let optimized_size = optimized_data.len() as u64;
+
+    fs::write(&output_path, &optimized_data)
+        .map_err(|e| format!("Failed to write output file: {}", e))?;
+
+    Ok(OptimizationResult {
+        input_path: input_path.to_string(),
+        output_path: output_path.to_string_lossy().to_string(),
+        original_size: info.file_size,
+        optimized_size,
+        width: out_w,
+        height: out_h,
+    })
+}
 
 #[tauri::command]
 pub async fn optimize_single(
@@ -21,48 +87,81 @@ pub async fn optimize_single(
     resize_height: u32,
 ) -> Result<OptimizationResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
+        optimize_one(
+            &input_path,
+            &output_dir,
+            &mode,
+            quality.max(1).min(100),
+            strip_metadata,
+            resize_scale,
+            resize_width.min(MAX_RESIZE_DIM),
+            resize_height.min(MAX_RESIZE_DIM),
+        )
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
+#[tauri::command]
+pub async fn optimize_batch(
+    app: tauri::AppHandle,
+    input_paths: Vec<String>,
+    output_dir: String,
+    mode: String,
+    quality: u8,
+    strip_metadata: bool,
+    resize_scale: u32,
+    resize_width: u32,
+    resize_height: u32,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
         let quality = quality.max(1).min(100);
         let resize_width = resize_width.min(MAX_RESIZE_DIM);
         let resize_height = resize_height.min(MAX_RESIZE_DIM);
-
-        let (img, info) = decoder::load_image(&input_path)?;
-
-        // Apply resize
-        let img = resizer::resize_image(&img, resize_scale.min(100), resize_width, resize_height);
-        let (out_w, out_h) = (img.width(), img.height());
-
-        // Determine output filename
-        let stem = Path::new(&input_path)
-            .file_stem()
-            .map(|s| s.to_string_lossy().to_string())
-            .unwrap_or_else(|| "output".to_string());
-        let output_path = Path::new(&output_dir).join(format!("{}_optimized.png", stem));
+        let total = input_paths.len();
+        let counter = AtomicUsize::new(0);
 
         fs::create_dir_all(&output_dir)
             .map_err(|e| format!("Failed to create output directory: {}", e))?;
 
-        let optimized_data = match mode.as_str() {
-            "lossless" => {
-                let png_data = decoder::encode_png(&img)?;
-                optimizer::optimize_lossless(&png_data, strip_metadata)?
-            }
-            "lossy" => quantizer::quantize_image(&img, quality)?,
-            _ => return Err("Invalid mode. Use 'lossless' or 'lossy'.".into()),
-        };
+        input_paths.par_iter().for_each(|input_path| {
+            let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
 
-        let optimized_size = optimized_data.len() as u64;
+            let result = optimize_one(
+                input_path,
+                &output_dir,
+                &mode,
+                quality,
+                strip_metadata,
+                resize_scale,
+                resize_width,
+                resize_height,
+            );
 
-        fs::write(&output_path, &optimized_data)
-            .map_err(|e| format!("Failed to write output file: {}", e))?;
+            let event = match result {
+                Ok(r) => BatchProgressEvent {
+                    input_path: input_path.clone(),
+                    index: idx,
+                    total,
+                    status: "done".to_string(),
+                    result: Some(r),
+                    error: None,
+                },
+                Err(e) => BatchProgressEvent {
+                    input_path: input_path.clone(),
+                    index: idx,
+                    total,
+                    status: "error".to_string(),
+                    result: None,
+                    error: Some(e),
+                },
+            };
 
-        Ok(OptimizationResult {
-            input_path,
-            output_path: output_path.to_string_lossy().to_string(),
-            original_size: info.file_size,
-            optimized_size,
-            width: out_w,
-            height: out_h,
-        })
+            let _ = app.emit("batch-progress", &event);
+        });
+
+        let _ = app.emit("batch-complete", ());
+        Ok(())
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?

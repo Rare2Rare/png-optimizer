@@ -6,6 +6,31 @@ import type {
   ResizeSettings,
 } from "./types";
 
+export async function resolvePaths(
+  paths: string[],
+  recursive: boolean,
+): Promise<string[]> {
+  return invoke<string[]>("resolve_paths", { paths, recursive });
+}
+
+export async function optimizeBatch(
+  inputPaths: string[],
+  outputDir: string,
+  mode: "lossless" | "lossy",
+  quality: number,
+  stripMetadata: boolean,
+  resize: ResizeSettings,
+): Promise<void> {
+  return invoke<void>("optimize_batch", {
+    inputPaths,
+    outputDir,
+    mode,
+    quality,
+    stripMetadata,
+    ...resizeArgs(resize),
+  });
+}
+
 function resizeArgs(r: ResizeSettings) {
   return {
     resizeScale: r.mode === "scale" ? r.scale : 0,

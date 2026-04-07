@@ -7,6 +7,8 @@ interface ActionBarProps {
   totalCount: number;
   doneCount: number;
   selectedCount: number;
+  currentFile: string | null;
+  onClearCompleted: () => void;
 }
 
 export function ActionBar({
@@ -16,6 +18,8 @@ export function ActionBar({
   totalCount,
   doneCount,
   selectedCount,
+  currentFile,
+  onClearCompleted,
 }: ActionBarProps) {
   const { t } = useTranslation();
   const progress = totalCount > 0 ? (doneCount / totalCount) * 100 : 0;
@@ -68,7 +72,40 @@ export function ActionBar({
         {t("actions.convertAll")}
       </button>
 
+      {doneCount > 0 && !converting && (
+        <button
+          onClick={onClearCompleted}
+          style={{
+            padding: "4px 10px",
+            background: "transparent",
+            color: "var(--text-muted)",
+            borderRadius: 4,
+            fontSize: 11,
+            border: "1px solid var(--border)",
+          }}
+        >
+          {t("queue.clearCompleted")}
+        </button>
+      )}
+
       <div style={{ flex: 1 }} />
+
+      {/* Progress area */}
+      {converting && currentFile && (
+        <span
+          style={{
+            fontSize: 11,
+            color: "var(--text-secondary)",
+            maxWidth: 200,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {currentFile}
+        </span>
+      )}
+
       {totalCount > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div

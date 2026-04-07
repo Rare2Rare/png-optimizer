@@ -4,9 +4,10 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 interface DropZoneProps {
   onFilesDropped: (paths: string[]) => void;
+  onBrowseFolder: () => void;
 }
 
-export function DropZone({ onFilesDropped }: DropZoneProps) {
+export function DropZone({ onFilesDropped, onBrowseFolder }: DropZoneProps) {
   const { t } = useTranslation();
   const [hovering, setHovering] = useState(false);
 
@@ -31,7 +32,7 @@ export function DropZone({ onFilesDropped }: DropZoneProps) {
     };
   }, [onFilesDropped]);
 
-  const handleBrowse = useCallback(async () => {
+  const handleBrowseFiles = useCallback(async () => {
     const { open } = await import("@tauri-apps/plugin-dialog");
     const files = await open({
       multiple: true,
@@ -70,14 +71,19 @@ export function DropZone({ onFilesDropped }: DropZoneProps) {
             {t("dropzone.message")}
             <br />
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              {t("dropzone.formats")}
+              {t("dropzone.formatsAndFolders")}
             </span>
           </>
         )}
       </div>
-      <button onClick={handleBrowse} className="btn-primary">
-        {t("dropzone.browse")}
-      </button>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={handleBrowseFiles} className="btn-primary">
+          {t("dropzone.browse")}
+        </button>
+        <button onClick={onBrowseFolder} className="btn-secondary" style={{ padding: "8px 16px", fontSize: 13 }}>
+          {t("dropzone.browseFolder")}
+        </button>
+      </div>
     </div>
   );
 }

@@ -11,7 +11,12 @@ interface QueuePanelProps {
   onRemove: (id: string) => void;
   onToggleSelection: (id: string) => void;
   onAddFiles: (paths: string[]) => void;
+  onAddFolder: () => void;
+  onSelectAll: () => void;
+  onDeselectAll: () => void;
+  onClearCompleted: () => void;
   doneCount: number;
+  selectedCount: number;
 }
 
 const statusIcons: Record<string, string> = {
@@ -28,7 +33,12 @@ export function QueuePanel({
   onRemove,
   onToggleSelection,
   onAddFiles,
+  onAddFolder,
+  onSelectAll,
+  onDeselectAll,
+  onClearCompleted,
   doneCount,
+  selectedCount,
 }: QueuePanelProps) {
   const { t } = useTranslation();
 
@@ -60,10 +70,12 @@ export function QueuePanel({
     }
   }, [onAddFiles]);
 
+  const allSelected = queue.length > 0 && selectedCount === queue.length;
+
   return (
     <div
       style={{
-        width: 240,
+        width: 260,
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
@@ -71,32 +83,44 @@ export function QueuePanel({
         borderRight: "1px solid var(--border)",
       }}
     >
+      {/* Header */}
       <div
         style={{
-          padding: "8px 12px",
+          padding: "6px 8px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          gap: 4,
           borderBottom: "1px solid var(--border)",
+          flexWrap: "wrap",
         }}
       >
         <span style={{ fontWeight: 600, fontSize: 12, color: "var(--text-secondary)" }}>
           {t("queue.title")}
         </span>
-        <button
-          onClick={handleBrowse}
-          style={{
-            padding: "3px 8px",
-            background: "var(--bg-tertiary)",
-            color: "var(--text-primary)",
-            borderRadius: 4,
-            fontSize: 11,
-          }}
-        >
+        {queue.length > 0 && (
+          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
+            {selectedCount}/{queue.length} {t("queue.selected")}
+          </span>
+        )}
+        <div style={{ flex: 1 }} />
+        {queue.length > 0 && (
+          <button
+            onClick={allSelected ? onDeselectAll : onSelectAll}
+            className="btn-secondary"
+            style={{ fontSize: 10, padding: "1px 5px" }}
+          >
+            {allSelected ? t("queue.deselectAll") : t("queue.selectAll")}
+          </button>
+        )}
+        <button onClick={handleBrowse} className="btn-secondary" style={{ fontSize: 10, padding: "1px 5px" }}>
           {t("queue.add")}
+        </button>
+        <button onClick={onAddFolder} className="btn-secondary" style={{ fontSize: 10, padding: "1px 5px" }}>
+          {t("queue.addFolder")}
         </button>
       </div>
 
+      {/* File list */}
       <div style={{ flex: 1, overflowY: "auto", padding: 4 }}>
         {queue.map((item) => (
           <div
@@ -162,15 +186,39 @@ export function QueuePanel({
         ))}
       </div>
 
+      {/* Footer */}
       <div
         style={{
-          padding: "6px 12px",
+          padding: "6px 10px",
           borderTop: "1px solid var(--border)",
           fontSize: 11,
           color: "var(--text-muted)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
         }}
       >
-        {queue.length} {t("queue.files")} / {doneCount} {t("queue.done")}
+        <span>
+          {queue.length} {t("queue.files")} / {doneCount} {t("queue.done")}
+        </span>
+        {doneCount > 0 && (
+          <>
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={onClearCompleted}
+              style={{
+                padding: "1px 6px",
+                background: "transparent",
+                color: "var(--text-muted)",
+                fontSize: 10,
+                borderRadius: 3,
+                border: "1px solid var(--border)",
+              }}
+            >
+              {t("queue.clearCompleted")}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ mod commands;
 mod models;
 mod processing;
 
+use commands::file_commands;
 use commands::image_commands;
 use commands::preview_commands;
 
@@ -23,6 +24,8 @@ pub fn run() {
             preview_commands::load_image_info,
             preview_commands::generate_preview,
             image_commands::optimize_single,
+            image_commands::optimize_batch,
+            file_commands::resolve_paths,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

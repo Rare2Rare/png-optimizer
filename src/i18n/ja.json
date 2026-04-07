@@ -6,14 +6,21 @@
     "drop": "ドロップして追加",
     "message": "画像ファイルをドラッグ＆ドロップ",
     "formats": "PNG, JPEG, BMP に対応",
-    "browse": "ファイルを選択"
+    "formatsAndFolders": "PNG, JPEG, BMP に対応（ファイルまたはフォルダ）",
+    "browse": "ファイルを選択",
+    "browseFolder": "フォルダを選択"
   },
   "queue": {
     "title": "QUEUE",
     "add": "+ 追加",
+    "addFolder": "+ フォルダ",
     "files": "ファイル",
     "done": "完了",
-    "selectToPreview": "キューからファイルを選択してプレビュー"
+    "selectToPreview": "キューからファイルを選択してプレビュー",
+    "selectAll": "全選択",
+    "deselectAll": "全解除",
+    "selected": "選択中",
+    "clearCompleted": "完了をクリア"
   },
   "preview": {
     "before": "BEFORE",

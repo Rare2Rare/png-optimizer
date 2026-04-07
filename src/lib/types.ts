@@ -40,6 +40,15 @@ export interface PreviewResult {
   height: number;
 }
 
+export interface BatchProgressPayload {
+  inputPath: string;
+  index: number;
+  total: number;
+  status: "done" | "error";
+  result?: OptimizationResult;
+  error?: string;
+}
+
 export type QueueItemStatus = "pending" | "processing" | "done" | "error";
 
 export interface QueueItem {
