@@ -42,7 +42,8 @@
     "resize": "リサイズ",
     "resizeNone": "なし",
     "resizeCustom": "カスタム",
-    "skipIfLarger": "増加時スキップ"
+    "skipIfLarger": "増加時スキップ",
+    "trashOriginal": "元ファイルをゴミ箱へ"
   },
   "actions": {
     "convertSelected": "選択を変換",

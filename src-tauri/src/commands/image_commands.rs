@@ -23,6 +23,7 @@ fn optimize_one(
     resize_width: u32,
     resize_height: u32,
     skip_if_larger: bool,
+    trash_original: bool,
 ) -> Result<OptimizationResult, String> {
     let (img, info) = decoder::load_image(input_path)?;
 
@@ -78,6 +79,12 @@ fn optimize_one(
     fs::write(&output_path, &optimized_data)
         .map_err(|e| format!("Failed to write output file: {}", e))?;
 
+    // Move original to trash if requested
+    if trash_original {
+        trash::delete(input_path)
+            .map_err(|e| format!("Failed to trash original file: {}", e))?;
+    }
+
     Ok(OptimizationResult {
         input_path: input_path.to_string(),
         output_path: output_path.to_string_lossy().to_string(),
@@ -100,6 +107,7 @@ pub async fn optimize_single(
     resize_width: u32,
     resize_height: u32,
     skip_if_larger: bool,
+    trash_original: bool,
 ) -> Result<OptimizationResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
         optimize_one(
@@ -112,6 +120,7 @@ pub async fn optimize_single(
             resize_width.min(MAX_RESIZE_DIM),
             resize_height.min(MAX_RESIZE_DIM),
             skip_if_larger,
+            trash_original,
         )
     })
     .await
@@ -130,6 +139,7 @@ pub async fn optimize_batch(
     resize_width: u32,
     resize_height: u32,
     skip_if_larger: bool,
+    trash_original: bool,
 ) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         let quality = quality.max(1).min(100);
@@ -154,6 +164,7 @@ pub async fn optimize_batch(
                 resize_width,
                 resize_height,
                 skip_if_larger,
+                trash_original,
             );
 
             let event = match &result {

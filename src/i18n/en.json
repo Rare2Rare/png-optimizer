@@ -42,7 +42,8 @@
     "resize": "Resize",
     "resizeNone": "None",
     "resizeCustom": "Custom",
-    "skipIfLarger": "Skip if larger"
+    "skipIfLarger": "Skip if larger",
+    "trashOriginal": "Trash originals"
   },
   "actions": {
     "convertSelected": "Convert selected",

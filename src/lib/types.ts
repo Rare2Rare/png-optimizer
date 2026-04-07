@@ -20,6 +20,7 @@ export interface OptimizationSettings {
   outputDir: string;
   stripMetadata: boolean;
   skipIfLarger: boolean;
+  trashOriginal: boolean;
   resize: ResizeSettings;
 }
 

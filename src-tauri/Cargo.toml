@@ -29,6 +29,7 @@ imagequant = "4"
 base64 = "0.22"
 walkdir = "2"
 rayon = "1"
+trash = "5"
 
 [profile.release]
 strip = true

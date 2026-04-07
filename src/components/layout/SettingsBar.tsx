@@ -189,6 +189,17 @@ export function SettingsBar({ settings, onSettingsChange }: SettingsBarProps) {
         {t("settings.skipIfLarger")}
       </label>
 
+      {/* Trash original toggle */}
+      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 12 }}>
+        <input
+          type="checkbox"
+          checked={settings.trashOriginal}
+          onChange={(e) => update({ trashOriginal: e.target.checked })}
+          style={{ accentColor: "var(--warning)" }}
+        />
+        {t("settings.trashOriginal")}
+      </label>
+
       {/* Output dir */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
         <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>

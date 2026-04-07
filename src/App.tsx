@@ -34,6 +34,7 @@ function App() {
     outputDir: "",
     stripMetadata: true,
     skipIfLarger: true,
+    trashOriginal: false,
     resize: { mode: "none", scale: 50, width: 0, height: 0 },
   });
 
@@ -281,6 +282,7 @@ function App() {
           settings.quality,
           settings.stripMetadata,
           settings.skipIfLarger,
+          settings.trashOriginal,
           settings.resize,
         );
       } catch (err) {
