@@ -18,10 +18,19 @@ export interface OptimizationSettings {
   mode: "lossless" | "lossy";
   quality: number; // 1-100, used in lossy mode
   outputDir: string;
+  outputFormat: "png" | "webp";
+  outputTemplate: string;
   stripMetadata: boolean;
   skipIfLarger: boolean;
   trashOriginal: boolean;
   resize: ResizeSettings;
+}
+
+export interface WatchEvent {
+  inputPath: string;
+  status: "done" | "error";
+  result?: OptimizationResult;
+  error?: string;
 }
 
 export interface OptimizationResult {

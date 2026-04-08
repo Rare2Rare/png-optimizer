@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use walkdir::WalkDir;
 
-const SUPPORTED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "bmp"];
+const SUPPORTED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "bmp", "webp"];
 
 fn is_image_file(path: &Path) -> bool {
     path.extension()

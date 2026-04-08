@@ -30,7 +30,8 @@ pub fn load_image(path: &str) -> Result<(DynamicImage, ImageInfo), String> {
         Some("png") => "PNG",
         Some("jpg" | "jpeg") => "JPEG",
         Some("bmp") => "BMP",
-        _ => return Err("Unsupported image format. Supported: PNG, JPEG, BMP".into()),
+        Some("webp") => "WebP",
+        _ => return Err("Unsupported image format. Supported: PNG, JPEG, BMP, WebP".into()),
     };
 
     let img = image::open(path).map_err(|e| format!("Failed to decode image: {}", e))?;
@@ -53,6 +54,15 @@ pub fn encode_png(img: &DynamicImage) -> Result<Vec<u8>, String> {
     let mut cursor = std::io::Cursor::new(&mut buf);
     img.write_to(&mut cursor, ImageFormat::Png)
         .map_err(|e| format!("Failed to encode PNG: {}", e))?;
+    Ok(buf)
+}
+
+/// Encode a DynamicImage as WebP bytes.
+pub fn encode_webp(img: &DynamicImage) -> Result<Vec<u8>, String> {
+    let mut buf = Vec::new();
+    let mut cursor = std::io::Cursor::new(&mut buf);
+    img.write_to(&mut cursor, ImageFormat::WebP)
+        .map_err(|e| format!("Failed to encode WebP: {}", e))?;
     Ok(buf)
 }
 

@@ -1,4 +1,4 @@
-export const SUPPORTED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".bmp"];
+export const SUPPORTED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".bmp", ".webp"];
 
 export const DEFAULT_QUALITY = 75;
 

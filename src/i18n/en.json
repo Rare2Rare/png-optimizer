@@ -6,7 +6,7 @@
     "drop": "Drop to add",
     "message": "Drag & drop image files",
     "formats": "Supports PNG, JPEG, BMP",
-    "formatsAndFolders": "Supports PNG, JPEG, BMP — files or folders",
+    "formatsAndFolders": "Supports PNG, JPEG, BMP, WebP — files or folders",
     "browse": "Select files",
     "browseFolder": "Select folder"
   },
@@ -43,7 +43,14 @@
     "resizeNone": "None",
     "resizeCustom": "Custom",
     "skipIfLarger": "Skip if larger",
-    "trashOriginal": "Trash originals"
+    "trashOriginal": "Trash originals",
+    "format": "Format",
+    "template": "Filename",
+    "templateHelp": "{name} {ext} {mode} {quality}",
+    "watchDir": "Watch folder",
+    "watchStart": "Start",
+    "watchStop": "Stop",
+    "watching": "Watching"
   },
   "actions": {
     "convertSelected": "Convert selected",

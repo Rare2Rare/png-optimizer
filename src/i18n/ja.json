@@ -6,7 +6,7 @@
     "drop": "ドロップして追加",
     "message": "画像ファイルをドラッグ＆ドロップ",
     "formats": "PNG, JPEG, BMP に対応",
-    "formatsAndFolders": "PNG, JPEG, BMP に対応（ファイルまたはフォルダ）",
+    "formatsAndFolders": "PNG, JPEG, BMP, WebP に対応（ファイルまたはフォルダ）",
     "browse": "ファイルを選択",
     "browseFolder": "フォルダを選択"
   },
@@ -43,7 +43,14 @@
     "resizeNone": "なし",
     "resizeCustom": "カスタム",
     "skipIfLarger": "増加時スキップ",
-    "trashOriginal": "元ファイルをゴミ箱へ"
+    "trashOriginal": "元ファイルをゴミ箱へ",
+    "format": "形式",
+    "template": "ファイル名",
+    "templateHelp": "{name} {ext} {mode} {quality}",
+    "watchDir": "監視フォルダ",
+    "watchStart": "監視開始",
+    "watchStop": "監視停止",
+    "watching": "監視中"
   },
   "actions": {
     "convertSelected": "選択を変換",
