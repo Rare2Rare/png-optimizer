@@ -176,39 +176,43 @@ pub async fn optimize_batch(
         let resize_height = resize_height.min(MAX_RESIZE_DIM);
         let total = input_paths.len();
         let counter = AtomicUsize::new(0);
+        const CHUNK_SIZE: usize = 100;
 
         fs::create_dir_all(&output_dir)
             .map_err(|e| format!("Failed to create output directory: {}", e))?;
 
-        input_paths.par_iter().for_each(|input_path| {
-            let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
+        // Process in chunks to limit concurrent memory usage
+        for chunk in input_paths.chunks(CHUNK_SIZE) {
+            chunk.par_iter().for_each(|input_path| {
+                let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
 
-            let result = optimize_one(
-                input_path, &output_dir, &mode,
-                quality, strip_metadata,
-                resize_scale, resize_width, resize_height,
-                skip_if_larger, trash_original, &output_format, &output_template,
-            );
+                let result = optimize_one(
+                    input_path, &output_dir, &mode,
+                    quality, strip_metadata,
+                    resize_scale, resize_width, resize_height,
+                    skip_if_larger, trash_original, &output_format, &output_template,
+                );
 
-            let event = match &result {
-                Ok(r) => BatchProgressEvent {
-                    input_path: input_path.clone(),
-                    index: idx, total,
-                    status: if r.skipped { "skipped".to_string() } else { "done".to_string() },
-                    result: Some(r.clone()),
-                    error: None,
-                },
-                Err(e) => BatchProgressEvent {
-                    input_path: input_path.clone(),
-                    index: idx, total,
-                    status: "error".to_string(),
-                    result: None,
-                    error: Some(e.clone()),
-                },
-            };
+                let event = match &result {
+                    Ok(r) => BatchProgressEvent {
+                        input_path: input_path.clone(),
+                        index: idx, total,
+                        status: if r.skipped { "skipped".to_string() } else { "done".to_string() },
+                        result: Some(r.clone()),
+                        error: None,
+                    },
+                    Err(e) => BatchProgressEvent {
+                        input_path: input_path.clone(),
+                        index: idx, total,
+                        status: "error".to_string(),
+                        result: None,
+                        error: Some(e.clone()),
+                    },
+                };
 
-            let _ = app.emit("batch-progress", &event);
-        });
+                let _ = app.emit("batch-progress", &event);
+            });
+        }
 
         let _ = app.emit("batch-complete", ());
         Ok(())

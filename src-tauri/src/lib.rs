@@ -24,6 +24,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             preview_commands::load_image_info,
+            preview_commands::load_image_infos_batch,
             preview_commands::generate_preview,
             image_commands::optimize_single,
             image_commands::optimize_batch,

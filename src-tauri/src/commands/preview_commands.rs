@@ -28,6 +28,24 @@ pub async fn load_image_info(path: String) -> Result<ImageInfo, String> {
     .map_err(|e| format!("Task failed: {}", e))?
 }
 
+/// Load metadata for many files at once. Returns only successful entries.
+/// Failed files are silently skipped (corrupted/unsupported files won't block the batch).
+#[tauri::command]
+pub async fn load_image_infos_batch(paths: Vec<String>) -> Result<Vec<ImageInfo>, String> {
+    use rayon::prelude::*;
+    tauri::async_runtime::spawn_blocking(move || {
+        let infos: Vec<ImageInfo> = paths
+            .par_iter()
+            .filter_map(|path| {
+                decoder::load_image(path).ok().map(|(_, info)| info)
+            })
+            .collect();
+        Ok(infos)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
 #[tauri::command]
 pub async fn generate_preview(
     path: String,

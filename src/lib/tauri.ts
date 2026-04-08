@@ -25,6 +25,10 @@ export async function loadImageInfo(path: string): Promise<ImageInfo> {
   return invoke<ImageInfo>("load_image_info", { path });
 }
 
+export async function loadImageInfosBatch(paths: string[]): Promise<ImageInfo[]> {
+  return invoke<ImageInfo[]>("load_image_infos_batch", { paths });
+}
+
 export async function generatePreview(
   path: string,
   mode: "lossless" | "lossy",

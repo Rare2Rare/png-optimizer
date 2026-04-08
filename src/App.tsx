@@ -7,7 +7,7 @@ import { SettingsBar } from "./components/layout/SettingsBar";
 import { ActionBar } from "./components/layout/ActionBar";
 import { QueuePanel } from "./components/queue/QueuePanel";
 import {
-  loadImageInfo,
+  loadImageInfosBatch,
   generatePreview,
   resolvePaths,
   optimizeBatch,
@@ -86,20 +86,33 @@ function App() {
     } catch {
       resolved = paths;
     }
-    for (const path of resolved) {
-      try {
-        const info = await loadImageInfo(path);
-        const newItem: QueueItem = {
-          id: generateId(), info, status: "pending", selected: true,
-        };
-        setQueue((prev) => {
-          if (prev.some((item) => item.info.path === path)) return prev;
-          return [...prev, newItem];
-        });
-        setSelectedId((prev) => prev ?? newItem.id);
-      } catch (err) {
-        console.error("Failed to load image:", err);
-      }
+    if (resolved.length === 0) return;
+
+    // Batch load all image metadata in a single IPC call
+    let infos: import("./lib/types").ImageInfo[];
+    try {
+      infos = await loadImageInfosBatch(resolved);
+    } catch (err) {
+      console.error("Failed to load images:", err);
+      return;
+    }
+
+    // Build new items and add to queue in a single state update
+    const newItems: QueueItem[] = infos.map((info) => ({
+      id: generateId(),
+      info,
+      status: "pending" as const,
+      selected: true,
+    }));
+
+    setQueue((prev) => {
+      const existingPaths = new Set(prev.map((item) => item.info.path));
+      const unique = newItems.filter((item) => !existingPaths.has(item.info.path));
+      return [...prev, ...unique];
+    });
+
+    if (newItems.length > 0) {
+      setSelectedId((prev) => prev ?? newItems[0].id);
     }
   }, []);
 
@@ -244,7 +257,7 @@ function App() {
       const w = event.payload;
       if (w.result) {
         try {
-          const info = await loadImageInfo(w.inputPath);
+          const [info] = await loadImageInfosBatch([w.inputPath]);
           setQueue((prev) => {
             if (prev.some((item) => item.info.path === w.inputPath)) return prev;
             return [...prev, {
