@@ -14,14 +14,42 @@ import {
   startWatch,
   stopWatch,
 } from "./lib/tauri";
-import { generateId } from "./lib/constants";
+import { generateId, formatFileSize } from "./lib/constants";
+import {
+  loadSettings,
+  saveSettings,
+  loadPresets,
+  savePresets,
+  loadRecentOutputDirs,
+  pushRecentOutputDir,
+  loadRecentWatchDirs,
+  pushRecentWatchDir,
+  loadLastOutputDir,
+  saveLastOutputDir,
+  loadLastWatchDir,
+  saveLastWatchDir,
+} from "./lib/storage";
 import type {
   QueueItem,
   OptimizationSettings,
   PreviewResult,
   BatchProgressPayload,
   WatchEvent,
+  SettingsPreset,
 } from "./lib/types";
+
+const DEFAULT_SETTINGS: OptimizationSettings = {
+  mode: "lossy",
+  quality: 75,
+  outputDir: "",
+  outputFormat: "png",
+  outputTemplate: "{name}_optimized.{ext}",
+  stripMetadata: true,
+  skipIfLarger: true,
+  trashOriginal: false,
+  targetFileSize: 0,
+  resize: { mode: "none", scale: 50, width: 0, height: 0 },
+};
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -32,23 +60,35 @@ function App() {
   const [converting, setConverting] = useState(false);
   const [currentFile, setCurrentFile] = useState<string | null>(null);
   const [watching, setWatching] = useState(false);
-  const [watchDir, setWatchDir] = useState("");
-  const [settings, setSettings] = useState<OptimizationSettings>({
-    mode: "lossy",
-    quality: 75,
-    outputDir: "",
-    outputFormat: "png",
-    outputTemplate: "{name}_optimized.{ext}",
-    stripMetadata: true,
-    skipIfLarger: true,
-    trashOriginal: false,
-    resize: { mode: "none", scale: 50, width: 0, height: 0 },
+
+  // Initialize settings from localStorage
+  const [settings, setSettings] = useState<OptimizationSettings>(() => {
+    const saved = loadSettings();
+    const base = saved ? { ...DEFAULT_SETTINGS, ...saved } : DEFAULT_SETTINGS;
+    return { ...base, outputDir: loadLastOutputDir() };
   });
+  const [watchDir, setWatchDir] = useState<string>(() => loadLastWatchDir());
+  const [presets, setPresets] = useState<SettingsPreset[]>(() => loadPresets());
+  const [recentOutputDirs, setRecentOutputDirs] = useState<string[]>(() => loadRecentOutputDirs());
+  const [recentWatchDirs, setRecentWatchDirs] = useState<string[]>(() => loadRecentWatchDirs());
 
   const selectedItem = queue.find((item) => item.id === selectedId);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unlistenRef = useRef<UnlistenFn | null>(null);
   const watchUnlistenRef = useRef<UnlistenFn | null>(null);
+
+  // Persist settings whenever they change
+  useEffect(() => {
+    saveSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
+    saveLastOutputDir(settings.outputDir);
+  }, [settings.outputDir]);
+
+  useEffect(() => {
+    saveLastWatchDir(watchDir);
+  }, [watchDir]);
 
   // Debounced preview regeneration
   useEffect(() => {
@@ -79,6 +119,106 @@ function App() {
     };
   }, []);
 
+  // Wrapped setter to track recent output dirs
+  const updateSettings = useCallback((next: OptimizationSettings) => {
+    if (next.outputDir && next.outputDir !== settings.outputDir) {
+      setRecentOutputDirs(pushRecentOutputDir(next.outputDir));
+    }
+    setSettings(next);
+  }, [settings.outputDir]);
+
+  const updateWatchDir = useCallback((dir: string) => {
+    if (dir && dir !== watchDir) {
+      setRecentWatchDirs(pushRecentWatchDir(dir));
+    }
+    setWatchDir(dir);
+  }, [watchDir]);
+
+  // ---- Preset management ----
+
+  const applyPreset = useCallback((preset: SettingsPreset) => {
+    setSettings((prev) => ({ ...preset.settings, outputDir: prev.outputDir }));
+  }, []);
+
+  const savePreset = useCallback((name: string) => {
+    const { outputDir: _, ...rest } = settings;
+    const newPreset: SettingsPreset = { name, settings: rest };
+    setPresets((prev) => {
+      const filtered = prev.filter((p) => p.name !== name);
+      const next = [...filtered, newPreset];
+      savePresets(next);
+      return next;
+    });
+  }, [settings]);
+
+  const deletePreset = useCallback((name: string) => {
+    setPresets((prev) => {
+      const next = prev.filter((p) => p.name !== name);
+      savePresets(next);
+      return next;
+    });
+  }, []);
+
+  // ---- Report export ----
+
+  const exportReport = useCallback(async () => {
+    const completed = queue.filter((item) => item.status === "done" || item.status === "skipped" || item.status === "error");
+    if (completed.length === 0) return;
+
+    let totalOriginal = 0;
+    let totalOptimized = 0;
+    let doneC = 0;
+    let skipC = 0;
+    let errC = 0;
+    for (const item of completed) {
+      if (item.status === "done" && item.result) {
+        totalOriginal += item.info.fileSize;
+        totalOptimized += item.result.optimizedSize;
+        doneC++;
+      } else if (item.status === "skipped") {
+        skipC++;
+      } else if (item.status === "error") {
+        errC++;
+      }
+    }
+    const savedBytes = totalOriginal - totalOptimized;
+    const savedPercent = totalOriginal > 0 ? (savedBytes / totalOriginal) * 100 : 0;
+
+    // Build CSV
+    const lines: string[] = [];
+    lines.push(`# PNG Optimizer Report - ${new Date().toISOString()}`);
+    lines.push(`# Total: ${completed.length} files, Done: ${doneC}, Skipped: ${skipC}, Error: ${errC}`);
+    lines.push(`# Total saved: ${formatFileSize(savedBytes)} (-${savedPercent.toFixed(1)}%)`);
+    lines.push("filename,original_bytes,optimized_bytes,reduction_percent,width,height,status,output_path,error");
+    for (const item of completed) {
+      const fn = item.info.fileName.replace(/"/g, '""');
+      const orig = item.info.fileSize;
+      const opt = item.result?.optimizedSize ?? 0;
+      const pct = orig > 0 && item.result ? ((1 - opt / orig) * 100).toFixed(1) : "";
+      const w = item.result?.width ?? item.info.width;
+      const h = item.result?.height ?? item.info.height;
+      const out = (item.result?.outputPath ?? "").replace(/"/g, '""');
+      const err = (item.error ?? "").replace(/"/g, '""');
+      lines.push(`"${fn}",${orig},${opt},${pct},${w},${h},${item.status},"${out}","${err}"`);
+    }
+    const csv = lines.join("\n");
+
+    const { save } = await import("@tauri-apps/plugin-dialog");
+    const savePath = await save({
+      defaultPath: `png-optimizer-report-${Date.now()}.csv`,
+      filters: [{ name: "CSV", extensions: ["csv"] }],
+    });
+    if (!savePath) return;
+
+    try {
+      const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+      await writeTextFile(savePath, csv);
+    } catch (err) {
+      console.error("Failed to write report:", err);
+      alert(`Failed to write report: ${err}`);
+    }
+  }, [queue]);
+
   const addFiles = useCallback(async (paths: string[]) => {
     let resolved: string[];
     try {
@@ -88,7 +228,6 @@ function App() {
     }
     if (resolved.length === 0) return;
 
-    // Batch load all image metadata in a single IPC call
     let infos: import("./lib/types").ImageInfo[];
     try {
       infos = await loadImageInfosBatch(resolved);
@@ -97,7 +236,6 @@ function App() {
       return;
     }
 
-    // Build new items and add to queue in a single state update
     const newItems: QueueItem[] = infos.map((info) => ({
       id: generateId(),
       info,
@@ -186,7 +324,6 @@ function App() {
     }
   }, [selectedItem, settings]);
 
-  // Event-driven batch conversion
   const convertSelected = useCallback(async (doSelectAll = false) => {
     if (!settings.outputDir) { alert(t("actions.noOutputDir")); return; }
 
@@ -233,7 +370,8 @@ function App() {
       await optimizeBatch(
         targetPaths, settings.outputDir, settings.mode, settings.quality,
         settings.stripMetadata, settings.skipIfLarger, settings.trashOriginal,
-        settings.outputFormat, settings.outputTemplate, settings.resize,
+        settings.outputFormat, settings.outputTemplate, settings.targetFileSize,
+        settings.resize,
       );
     } catch (err) {
       console.error("Batch optimization failed:", err);
@@ -244,14 +382,12 @@ function App() {
 
   const convertAll = useCallback(async () => { convertSelected(true); }, [convertSelected]);
 
-  // Watch folder
   const handleStartWatch = useCallback(async () => {
     if (!watchDir || !settings.outputDir) {
       alert(t("actions.noOutputDir"));
       return;
     }
 
-    // Listen for watch events
     if (watchUnlistenRef.current) watchUnlistenRef.current();
     const unlisten = await listen<WatchEvent>("watch-file-processed", async (event) => {
       const w = event.payload;
@@ -269,7 +405,7 @@ function App() {
             }];
           });
         } catch {
-          // File might have been trashed, just add with minimal info
+          // File might have been trashed
         }
       }
     });
@@ -322,7 +458,7 @@ function App() {
         data-tauri-drag-region
       >
         <span style={{ fontWeight: 600, fontSize: 14 }}>PNG Optimizer</span>
-        <span style={{ marginLeft: 8, fontSize: 11, color: "var(--text-muted)" }}>v0.4.0</span>
+        <span style={{ marginLeft: 8, fontSize: 11, color: "var(--text-muted)" }}>v0.5.0</span>
         <div style={{ flex: 1 }} />
         <button
           onClick={toggleLanguage}
@@ -358,9 +494,12 @@ function App() {
       </div>
 
       <SettingsBar
-        settings={settings} onSettingsChange={setSettings}
+        settings={settings} onSettingsChange={updateSettings}
         watching={watching} onStartWatch={handleStartWatch} onStopWatch={handleStopWatch}
-        watchDir={watchDir} onSetWatchDir={setWatchDir}
+        watchDir={watchDir} onSetWatchDir={updateWatchDir}
+        presets={presets} onApplyPreset={applyPreset}
+        onSavePreset={savePreset} onDeletePreset={deletePreset}
+        recentOutputDirs={recentOutputDirs} recentWatchDirs={recentWatchDirs}
       />
 
       <ActionBar
@@ -368,6 +507,7 @@ function App() {
         converting={converting} totalCount={queue.length}
         doneCount={doneCount} selectedCount={selectedCount}
         currentFile={currentFile} onClearCompleted={clearCompleted}
+        onExportReport={exportReport}
       />
     </div>
   );

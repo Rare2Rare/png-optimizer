@@ -23,7 +23,13 @@ export interface OptimizationSettings {
   stripMetadata: boolean;
   skipIfLarger: boolean;
   trashOriginal: boolean;
+  targetFileSize: number; // 0 = disabled, >0 = target in bytes
   resize: ResizeSettings;
+}
+
+export interface SettingsPreset {
+  name: string;
+  settings: Omit<OptimizationSettings, "outputDir">;
 }
 
 export interface WatchEvent {

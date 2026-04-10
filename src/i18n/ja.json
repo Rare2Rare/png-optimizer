@@ -50,13 +50,21 @@
     "watchDir": "監視フォルダ",
     "watchStart": "監視開始",
     "watchStop": "監視停止",
-    "watching": "監視中"
+    "watching": "監視中",
+    "preset": "プリセット",
+    "presetNone": "（なし）",
+    "presetSave": "保存",
+    "presetNamePrompt": "プリセット名を入力してください",
+    "presetDeleteConfirm": "プリセット「{{name}}」を削除しますか？",
+    "targetSize": "目標サイズ",
+    "recent": "最近使ったフォルダ"
   },
   "actions": {
     "convertSelected": "選択を変換",
     "convertAll": "すべて変換",
     "converting": "変換中...",
-    "noOutputDir": "出力先フォルダを選択してください"
+    "noOutputDir": "出力先フォルダを選択してください",
+    "exportReport": "レポート"
   },
   "zoom": {
     "reset": "リセット",

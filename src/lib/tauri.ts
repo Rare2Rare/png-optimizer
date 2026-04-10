@@ -55,6 +55,7 @@ export async function optimizeSingle(
   trashOriginal: boolean,
   outputFormat: string,
   outputTemplate: string,
+  targetFileSize: number,
   resize: ResizeSettings,
 ): Promise<OptimizationResult> {
   return invoke<OptimizationResult>("optimize_single", {
@@ -67,6 +68,7 @@ export async function optimizeSingle(
     trashOriginal,
     outputFormat,
     outputTemplate,
+    targetFileSize,
     ...resizeArgs(resize),
   });
 }
@@ -81,6 +83,7 @@ export async function optimizeBatch(
   trashOriginal: boolean,
   outputFormat: string,
   outputTemplate: string,
+  targetFileSize: number,
   resize: ResizeSettings,
 ): Promise<void> {
   return invoke<void>("optimize_batch", {
@@ -93,6 +96,7 @@ export async function optimizeBatch(
     trashOriginal,
     outputFormat,
     outputTemplate,
+    targetFileSize,
     ...resizeArgs(resize),
   });
 }

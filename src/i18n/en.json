@@ -50,13 +50,21 @@
     "watchDir": "Watch folder",
     "watchStart": "Start",
     "watchStop": "Stop",
-    "watching": "Watching"
+    "watching": "Watching",
+    "preset": "Preset",
+    "presetNone": "(none)",
+    "presetSave": "Save",
+    "presetNamePrompt": "Enter preset name",
+    "presetDeleteConfirm": "Delete preset \"{{name}}\"?",
+    "targetSize": "Target size",
+    "recent": "Recent folders"
   },
   "actions": {
     "convertSelected": "Convert selected",
     "convertAll": "Convert all",
     "converting": "Converting...",
-    "noOutputDir": "Please select an output folder"
+    "noOutputDir": "Please select an output folder",
+    "exportReport": "Report"
   },
   "zoom": {
     "reset": "Reset",

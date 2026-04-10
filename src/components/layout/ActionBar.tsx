@@ -9,6 +9,7 @@ interface ActionBarProps {
   selectedCount: number;
   currentFile: string | null;
   onClearCompleted: () => void;
+  onExportReport: () => void;
 }
 
 export function ActionBar({
@@ -20,6 +21,7 @@ export function ActionBar({
   selectedCount,
   currentFile,
   onClearCompleted,
+  onExportReport,
 }: ActionBarProps) {
   const { t } = useTranslation();
   const progress = totalCount > 0 ? (doneCount / totalCount) * 100 : 0;
@@ -71,6 +73,22 @@ export function ActionBar({
       >
         {t("actions.convertAll")}
       </button>
+
+      {doneCount > 0 && !converting && (
+        <button
+          onClick={onExportReport}
+          style={{
+            padding: "4px 10px",
+            background: "transparent",
+            color: "var(--text-secondary)",
+            borderRadius: 4,
+            fontSize: 11,
+            border: "1px solid var(--border)",
+          }}
+        >
+          {t("actions.exportReport")}
+        </button>
+      )}
 
       {doneCount > 0 && !converting && (
         <button

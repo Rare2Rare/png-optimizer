@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use image::DynamicImage;
 use rayon::prelude::*;
 use tauri::Emitter;
 
@@ -13,7 +14,6 @@ use crate::processing::resizer;
 
 const MAX_RESIZE_DIM: u32 = 16384;
 
-/// Expand output filename template with variables.
 fn expand_template(template: &str, name: &str, ext: &str, mode: &str, quality: u8) -> String {
     template
         .replace("{name}", name)
@@ -22,6 +22,80 @@ fn expand_template(template: &str, name: &str, ext: &str, mode: &str, quality: u
         .replace("{quality}", &quality.to_string())
 }
 
+/// Encode image with given quality and return bytes.
+/// Used for both one-shot encoding and binary search target-size mode.
+fn encode_with_quality(
+    img: &DynamicImage,
+    mode: &str,
+    quality: u8,
+    strip_metadata: bool,
+    output_format: &str,
+) -> Result<Vec<u8>, String> {
+    match output_format {
+        "webp" => decoder::encode_webp(img),
+        _ => match mode {
+            "lossless" => {
+                let png_data = decoder::encode_png(img)?;
+                optimizer::optimize_lossless(&png_data, strip_metadata)
+            }
+            "lossy" => quantizer::quantize_image(img, quality),
+            _ => Err("Invalid mode. Use 'lossless' or 'lossy'.".into()),
+        },
+    }
+}
+
+/// Binary-search quality to reach a target file size.
+/// Returns the best (quality, data) that is <= target_size, or the smallest attempt.
+fn encode_to_target_size(
+    img: &DynamicImage,
+    mode: &str,
+    strip_metadata: bool,
+    output_format: &str,
+    target_size: u64,
+) -> Result<(u8, Vec<u8>), String> {
+    // First try max quality — if already under target, use it
+    let full = encode_with_quality(img, mode, 100, strip_metadata, output_format)?;
+    if (full.len() as u64) <= target_size {
+        return Ok((100, full));
+    }
+
+    // Binary search between 1 and 100
+    let mut low: u8 = 1;
+    let mut high: u8 = 100;
+    let mut best: (u8, Vec<u8>) = (1, full); // fallback to max if nothing fits
+    let mut best_fits = false;
+
+    for _ in 0..8 {
+        if low >= high {
+            break;
+        }
+        let mid = low + (high - low) / 2;
+        let data = encode_with_quality(img, mode, mid, strip_metadata, output_format)?;
+        let size = data.len() as u64;
+
+        if size <= target_size {
+            // Fits — try higher quality
+            best = (mid, data);
+            best_fits = true;
+            low = mid + 1;
+        } else {
+            // Too large — try lower quality
+            high = mid.saturating_sub(1);
+        }
+    }
+
+    // If nothing fit, try quality=1 as last resort
+    if !best_fits {
+        let q1 = encode_with_quality(img, mode, 1, strip_metadata, output_format)?;
+        if (q1.len() as u64) < (best.1.len() as u64) {
+            best = (1, q1);
+        }
+    }
+
+    Ok(best)
+}
+
+#[allow(clippy::too_many_arguments)]
 fn optimize_one(
     input_path: &str,
     output_dir: &str,
@@ -35,6 +109,7 @@ fn optimize_one(
     trash_original: bool,
     output_format: &str,
     output_template: &str,
+    target_file_size: u64,
 ) -> Result<OptimizationResult, String> {
     let (img, info) = decoder::load_image(input_path)?;
 
@@ -51,11 +126,17 @@ fn optimize_one(
         _ => "png",
     };
 
-    // Build output filename from template
-    let filename = expand_template(output_template, &stem, ext, mode, quality);
+    // Encode: either fixed quality or target-size binary search
+    let (effective_quality, optimized_data) = if target_file_size > 0 && mode == "lossy" {
+        encode_to_target_size(&img, mode, strip_metadata, output_format, target_file_size)?
+    } else {
+        let data = encode_with_quality(&img, mode, quality, strip_metadata, output_format)?;
+        (quality, data)
+    };
+
+    let filename = expand_template(output_template, &stem, ext, mode, effective_quality);
     let base = Path::new(output_dir).join(&filename);
     let output_path = if base.exists() {
-        // Collision: insert suffix before extension
         let out_stem = Path::new(&filename)
             .file_stem()
             .map(|s| s.to_string_lossy().to_string())
@@ -74,25 +155,6 @@ fn optimize_one(
 
     fs::create_dir_all(output_dir)
         .map_err(|e| format!("Failed to create output directory: {}", e))?;
-
-    // Encode based on output format
-    let optimized_data = match output_format {
-        "webp" => {
-            // WebP: use image crate's WebP encoder directly
-            decoder::encode_webp(&img)?
-        }
-        _ => {
-            // PNG: existing lossless/lossy pipeline
-            match mode {
-                "lossless" => {
-                    let png_data = decoder::encode_png(&img)?;
-                    optimizer::optimize_lossless(&png_data, strip_metadata)?
-                }
-                "lossy" => quantizer::quantize_image(&img, quality)?,
-                _ => return Err("Invalid mode. Use 'lossless' or 'lossy'.".into()),
-            }
-        }
-    };
 
     let optimized_size = optimized_data.len() as u64;
 
@@ -127,6 +189,7 @@ fn optimize_one(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn optimize_single(
     input_path: String,
@@ -141,6 +204,7 @@ pub async fn optimize_single(
     trash_original: bool,
     output_format: String,
     output_template: String,
+    target_file_size: u64,
 ) -> Result<OptimizationResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
         optimize_one(
@@ -148,12 +212,14 @@ pub async fn optimize_single(
             quality.max(1).min(100), strip_metadata,
             resize_scale, resize_width.min(MAX_RESIZE_DIM), resize_height.min(MAX_RESIZE_DIM),
             skip_if_larger, trash_original, &output_format, &output_template,
+            target_file_size,
         )
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn optimize_batch(
     app: tauri::AppHandle,
@@ -169,6 +235,7 @@ pub async fn optimize_batch(
     trash_original: bool,
     output_format: String,
     output_template: String,
+    target_file_size: u64,
 ) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         let quality = quality.max(1).min(100);
@@ -181,7 +248,6 @@ pub async fn optimize_batch(
         fs::create_dir_all(&output_dir)
             .map_err(|e| format!("Failed to create output directory: {}", e))?;
 
-        // Process in chunks to limit concurrent memory usage
         for chunk in input_paths.chunks(CHUNK_SIZE) {
             chunk.par_iter().for_each(|input_path| {
                 let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
@@ -191,6 +257,7 @@ pub async fn optimize_batch(
                     quality, strip_metadata,
                     resize_scale, resize_width, resize_height,
                     skip_if_larger, trash_original, &output_format, &output_template,
+                    target_file_size,
                 );
 
                 let event = match &result {
