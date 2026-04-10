@@ -21,6 +21,10 @@
     "deselectAll": "Deselect all",
     "selected": "selected",
     "clearCompleted": "Clear completed",
+    "clearAll": "Clear all",
+    "clearAllConfirm": "Clear all {{count}} items from the queue?",
+    "replaceFolder": "Replace",
+    "replaceFolderHelp": "Clear the queue and load a new folder",
     "skipped": "Skipped (larger)"
   },
   "preview": {

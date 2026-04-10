@@ -260,6 +260,22 @@ function App() {
     if (dir) addFiles([dir as string]);
   }, [addFiles]);
 
+  const clearAll = useCallback(() => {
+    setQueue([]);
+    setSelectedId(null);
+    setPreview(null);
+  }, []);
+
+  const replaceFolder = useCallback(async () => {
+    const { open } = await import("@tauri-apps/plugin-dialog");
+    const dir = await open({ directory: true });
+    if (!dir) return;
+    setQueue([]);
+    setSelectedId(null);
+    setPreview(null);
+    addFiles([dir as string]);
+  }, [addFiles]);
+
   const removeItem = useCallback((id: string) => {
     setQueue((prev) => prev.filter((item) => item.id !== id));
     if (selectedId === id) { setSelectedId(null); setPreview(null); }
@@ -477,6 +493,8 @@ function App() {
           queue={queue} selectedId={selectedId}
           onSelect={selectItem} onRemove={removeItem} onToggleSelection={toggleItemSelection}
           onAddFiles={addFiles} onAddFolder={addFolder}
+          onReplaceFolder={replaceFolder}
+          onClearAll={clearAll}
           onSelectAll={selectAll} onDeselectAll={deselectAll}
           onClearCompleted={clearCompleted}
           doneCount={doneCount} selectedCount={selectedCount}

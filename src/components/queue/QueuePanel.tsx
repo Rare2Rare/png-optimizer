@@ -12,6 +12,8 @@ interface QueuePanelProps {
   onToggleSelection: (id: string) => void;
   onAddFiles: (paths: string[]) => void;
   onAddFolder: () => void;
+  onReplaceFolder: () => void;
+  onClearAll: () => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
   onClearCompleted: () => void;
@@ -38,6 +40,8 @@ export function QueuePanel({
   onToggleSelection,
   onAddFiles,
   onAddFolder,
+  onReplaceFolder,
+  onClearAll,
   onSelectAll,
   onDeselectAll,
   onClearCompleted,
@@ -45,6 +49,14 @@ export function QueuePanel({
   selectedCount,
 }: QueuePanelProps) {
   const { t } = useTranslation();
+
+  const handleClearAll = useCallback(() => {
+    if (queue.length === 0) return;
+    if (window.confirm(t("queue.clearAllConfirm", { count: queue.length }))) {
+      onClearAll();
+    }
+  }, [queue.length, onClearAll, t]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewHeight, setViewHeight] = useState(400);
@@ -135,6 +147,25 @@ export function QueuePanel({
         <button onClick={onAddFolder} className="btn-secondary" style={{ fontSize: 10, padding: "1px 5px" }}>
           {t("queue.addFolder")}
         </button>
+        <button onClick={onReplaceFolder} className="btn-secondary" style={{ fontSize: 10, padding: "1px 5px" }}
+          title={t("queue.replaceFolderHelp")}>
+          {t("queue.replaceFolder")}
+        </button>
+        {queue.length > 0 && (
+          <button
+            onClick={handleClearAll}
+            style={{
+              fontSize: 10, padding: "1px 5px",
+              background: "transparent",
+              color: "var(--error)",
+              border: "1px solid var(--border)",
+              borderRadius: 3,
+            }}
+            title={t("queue.clearAll")}
+          >
+            {t("queue.clearAll")}
+          </button>
+        )}
       </div>
 
       {/* Virtualized file list */}

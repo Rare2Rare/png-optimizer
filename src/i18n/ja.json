@@ -21,6 +21,10 @@
     "deselectAll": "全解除",
     "selected": "選択中",
     "clearCompleted": "完了をクリア",
+    "clearAll": "全クリア",
+    "clearAllConfirm": "キューの {{count}} 件すべてをクリアしますか？",
+    "replaceFolder": "置換",
+    "replaceFolderHelp": "キューをクリアして新しいフォルダの画像だけに入れ替え",
     "skipped": "スキップ（増加）"
   },
   "preview": {
